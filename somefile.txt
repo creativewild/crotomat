@@ -235,14 +235,8 @@ Fields:
 
 #-----------------
 
+#Events
 
-#d2
-
-#Heroes - this table will gonna hold some information that will be parsed using Valve Steam API
-
-#lol
-
-#Heroes - this table will gonna hold some information that will be parsed using Riot API
 
 #---------------
 
@@ -320,9 +314,10 @@ Fields:
 - Character_image
 - Character_image_description
 
-#Builds
+#Builds <- builds should have a feature where a user can rate and like it(vote - each member can only vote once and ccan only rate it once), this will increase the popularty of the build and show on a list and can be orded by votes
 - Build_id
 - Build_name
+- Build_type
 - Build_charcter_race
 - Build_charcter_profession
 - Build_link
@@ -342,8 +337,23 @@ Fields:
 
 #Naviagtion
 
+#d2
+#Heroes - this table will gonna hold some information that will be parsed using Valve Steam API
+#Heroes_d2
+- Hero_d2_id
+- Hero_d2_Name
+- Hero_d2_Desc
+- Hero_d2_Image
 
 
+
+#lol
+#Heroes - this table will gonna hold some information that will be parsed using Riot API
+#Heroes_lol
+- Hero_lol_id
+- Hero_lol_Name
+- Hero_lol_Desc
+- Hero_lol_Image
 
 
 
