@@ -1,0 +1,377 @@
+# Kickstart file to create a minimal/hardened RHEL system
+# This file is intended to be passed through the python 
+# cheetah template system or sed/awk to replace certain 
+# variables (you could use awk/sed/perl/bash if you like)
+#errorCatcher Echo
+
+lang $base_lang
+keyboard $base_keyboard
+timezone $base_timezone
+
+# Use "grub-md5-crypt" to generate the encrypted passphrase
+rootpw --iscrypted '$passwords_root'
+
+reboot
+text
+install
+#if $install_type 
+url --url http://10.0.0.1:81/yum-repos/rhel/5Server/i386
+# url --url $install_url
+#else
+cdrom
+#end if
+
+key --skip
+
+#if $oracle_install
+# Oracle ($oracle_version) is being installed therefore selinux must be disabled.
+selinux --disabled
+#else
+# Oracle is not being installed selinux should be switched on:
+selinux --enforcing
+#end if
+
+# Bootloader
+# Put a password on the boot loader to keep the riff raff out,
+# disable usb as per NSA 2.2.2.2.3:
+#if $boot_conf
+# Custom boot loader configuration:
+bootloader --location=mbr --append="$boot_append" --md5pass='$passwords_bootloader'
+#else
+# No custom boot loader configuration
+bootloader --location=mbr 
+#end if
+
+zerombr yes
+clearpart --all --drives=sda --initlabel 
+# Be very careful about where you use clearpart --all without limiting
+# it you could clear all the partitions on all the disks the install
+# can see. On a SAN without zoning/security that could be very bad!
+
+part /boot --fstype ext3 --size 100 --asprimary --ondisk sda 
+part swap --size 3000 --asprimary --ondisk sda 
+part pv.3 --size=0 --grow --ondisk=sda
+volgroup vg00 --pesize=32768 pv.3
+
+# Create the filesystems and logical volumes
+logvol /                   --fstype ext3 --name=lv_root  --vgname=vg00 --size=10000
+logvol /var                --fstype ext3 --name=lv_var   --vgname=vg00 --size=2000
+logvol /home               --fstype ext3 --name=lv_home  --vgname=vg00 --size=1000 --fsoptions nodev,nosuid,noexec
+#if $oracle_install
+# Oracle ($oracle_version) is being installed create /u01 filesystem:
+logvol /u01                --fstype ext3 --name=lv_oracle_u01  --vgname=vg00 --size=20000
+logvol /tmp                --fstype ext3 --name=lv_tmp         --vgname=vg00 --size=5000
+#else
+logvol /tmp                --fstype ext3 --name=lv_tmp --vgname=vg00 --size=5000
+#end if
+#if $tomcat_install
+# Tomcat $tomcat_install is being installed. Create a filesystem:
+logvol /opt/tomcat            --fstype ext3 --name=lv_tomcat --vgname=vg00 --size=5000
+#end if
+#if $apache_install
+# Apache $apache_install is being installed. Create a filesystem:
+logvol /var/www            --fstype ext3 --name=lv_www --vgname=vg00 --size=2000
+#end if
+
+#if $build_repo
+# Build time yum repositories:
+repo --name=vmware      --baseurl=http://10.0.0.1:81/yum-repos/vmware-tools/i386
+repo --name=lepel       --baseurl=http://10.0.0.1:81/yum-repos/epel/i386
+#else
+# No build time yum repositories specified
+#end if
+
+auth  --useshadow  --enablemd5 
+network --bootproto=static --ip=$IP_ADDRESS --netmask=$NETMASK --device=eth0  --hostname=$HOSTNAME
+#network --bootproto=dhcp --device=eth1 
+skipx
+services --disable avahi-daemon,bluetooth,cups,hplip,firstboot,gpm,hidd,ip6tables,isdn,kudzu,mdmonitor,pcscd,xfs,autofs,portmap,nfs,nfslock,xinetd,mcstrans,rhnsd,yum-updatesd,atd,kdump,readahead_early,readahead_later,messagebus,haldaemon,hidd,apm,anacron
+
+%packages --excludedocs 
+@admin-tools 
+@core 
+@base 
+
+#if $oracle_install
+# Oracle ($oracle_version) RPM dependencies:
+#include raw $oracle_pre_reqs_file
+#else
+# No oracle install
+#end if
+
+Abaddon
+Lord of Avernus
+
+Faction: The Dire
+Primary Attribute: Strenght
+Attack Type: Melee
+Role(s): Lane-support, durable, smi-carry, support
+
+STR 90.5 at 25 (23 + 2.7/level)
+AGI 54.5 at 25 (17 + 1.5/level)
+INT 71 at 25 (21 + 2/level)
+HEALTH 2183 at 25
+MANA 1157 at 25
+DAMAGE 55 - 65
+RANGE 128
+ARMOR 1.38
+MOVMENT 310
+
+#if $tomcat_install
+tomcat5
+#elsif $apache_install
+httpd
+#elsif $mysql_install
+mysql-server
+#end if
+
+# Site required RPM's:
+xorg-x11-xauth
+#if $vm_install_tools
+# VMWare Tools rpm will be installed
+VMwareTools
+#else
+# VMWare Tools will not installed
+#end if
+
+# Exclude
+
+## Post Sections below:
+%post 
+(
+chvt 3 
+
+echo "---------------------------------------------"
+echo "Kernel Command Line (how install was booted):"
+echo `cat /proc/cmdline`
+echo "---------------------------------------------"
+
+#if $vm_config_tools
+# VMWare Tools will be configured
+echo "Installing VMWare Tools"
+echo "-----------------------"
+curl http://10.0.0.1:81/yum-repos/vmware-tools/vmware-tools-latest.tar.gz -o /tmp/vmware-tools-latest.tar.gz
+cd /tmp
+tar zxf vmware-tools-latest.tar.gz
+/tmp/vmware-tools-distrib/vmware-install.pl --default
+rm -rf /tmp/vmware-tools-distrib
+echo "-----------------------"
+echo "-----------------------"
+
+
+#else
+# VMWare Tools will not be configured
+#end if
+
+#----------------------
+
+#Dashboard
+
+#Settings
+
+#Statistics
+
+#---------------------
+
+#Roster
+
+#Teams
+
+#Games
+
+#Matchs
+
+#Tournaments
+
+#-------------------
+
+#Pages - create pages like wordpress does
+Fields:
+- Page_id
+- Page_title
+- Page_description
+- Page_content
+- Parent_page
+- Page_seo_description
+- Page_visibility
+- Page_status
+- Page_publish
+- Page_author
+- Page_featured_image
+- Page_Template
+
+#Articles - create articles like wordpress does
+- Article_id
+- Article_title
+- Article_description
+- Article_content
+- Article_author
+- Article_creation_date
+- Article_last_edited
+- Article_push_to_front
+- Article_seo_description
+- Article_categorie
+- Article_tags
+- Article_status
+- Article_publish
+- Article_visibility
+- Article_featured_image
+- Article_Template
+
+#Categories - categories for articles
+- Categorie_id
+- Categorie_slug
+- Category_name 
+
+#Tags - Tags for articles
+- Tag_id
+- Tag_name
+
+#Media - this will have 3 sections Images / Videos / Streams
+=Images (standart image module where you can display just an image on the front page life FB when someone adds an image and we can also have a gallery type page)
+=Videos (able to select the provider:youtube,vimeo, or other providers)
+=Stream (able to select between twitch.tv and justin.tv using the respective embending method respectively)
+#Downloads - this will hold a download section
+
+#-----------------
+
+
+#d2
+
+#Heroes - this table will gonna hold some information that will be parsed using Valve Steam API
+
+#lol
+
+#Heroes - this table will gonna hold some information that will be parsed using Riot API
+
+#---------------
+
+#Users - Holds user authentication info (users table) and user profile information (user_profile table)
+- User_id
+- User_name
+- User_password_hash
+- User_email
+- User_active
+- User_activation_hash
+- User_password_reset_hash
+- User_password_reset_timestamp
+- User_rememberme_token
+- User_failed_logins
+- Userlast_failed_login
+- User_registration_datetime
+- User_registration_ip
+
+#Profile
+- Profile_user_id <-- this filed make the relation with the User table so we know to each user the profile belongs - one user can only have one profile and one profile can only belong to one user.
+- Profile_id
+- Profile_fist_name
+- Profile_last_name
+- Profile_display_name
+- Profile_city
+- Profile_country
+- Profile_date_birth
+- Profile_gender
+- Profile_public_email
+- Profile_skype
+- Profile_image
+- Profile_About_me
+- Profile_Steam_ID
+- Profile_Account_ID
+- Profile_Lol_ID
+- Profile_gw2_account_name
+
+#Achivments
+
+- Achivments_profile_id <- this field associates the achivments with the users profile, this table has a relation of 1 -to- 1 with the profile table 
+- Achivments_gw2_icon
+- Achivments_gw2_value
+- Achivments_lol_icon
+- Achivments_lol_value
+- Achivments_dt2_icon
+- Achivments_dt2_value
+
+#Characters #gw2
+
+#My chars - this allows users to create characters under their account profile. one user can have an infinite number of characters
+
+- Character_id
+- Character_profile_id <- associate this charcater with the user profiles - one user can have multiple characters associated with him but one character can only belong to one user
+- Character_name
+- Character_race
+- Character_profession
+- Character_order
+- Character_first_craft
+- Character_second_craft
+- Character_fractal_lvl
+- Character_fractal_ar
+- Character_stry_ac
+- Character_stry_cm
+- Character_stry_ta
+- Character_stry_se
+- Character_stry_cof
+- Character_stry_hotw
+- Character_stry_coe
+- Character_stry_arah
+- Character_build_id <- gets the info from Builds table - one character can have one build - at the time of creation if a build is not available os suitable for the character the user should be able to create one before saving the character - when applying a build the race and profession of the charcter should match the race and profession of the build
+
+#Character_images
+- Character_image_id
+- Character_id <- links to the table characters, one character can have multiple images assigned to it
+- Character_image
+- Character_image_description
+
+#Builds
+- Build_id
+- Build_name
+- Build_charcter_race
+- Build_charcter_profession
+- Build_link
+- Build_image_1
+- Build_image_2
+- Build_image_3
+
+
+
+
+
+#Roles - Holds role information like admin, moderator member, also works as ACL
+
+#------------
+
+#Integration
+
+#Naviagtion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
